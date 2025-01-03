@@ -16,7 +16,7 @@ jobs:
         uses: actions/checkout@v4
       - name: 🏷️ Get next version
         id: get-next-version
-        uses: ./.github/actions/get-next-version
+        uses: aproorg/github-workflows/.github/actions/get-next-version@main
         with:
           github_token: ${{ secrets.token }}
 
@@ -33,6 +33,6 @@ jobs:
           fetch-depth: 0
 
       - name: ⏯️ Publish new release
-        uses: ./.github/actions/release
+        uses: aproorg/github-workflows/.github/actions/release@main
         with:
           github_token: ${{ secrets.token }}
