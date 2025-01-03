@@ -39,13 +39,13 @@ permissions:
 jobs:
   terraform-quality-checks:
     name: "✅ Terraform Quality checks"
-    uses: aproorg/github-workflows/.github/workflows/terraform-quality-checks.yml@main
+    uses: ./.github/workflows/terraform-quality-checks.yml
     with:
       terraform_version: ${{ inputs.terraform_version }}
 
-  application-quality-checks:
-    name: '✅ Application quality checks'
-    uses: ./.github/workflows/quality-checks.yml
+  # application-quality-checks:
+  #   name: '✅ Application quality checks'
+  #   uses: .github/workflows/quality-checks.yml
 
   get-next-version:
     name: 🏷️ Get next version
@@ -57,48 +57,48 @@ jobs:
         uses: actions/checkout@v4
       - name: 🏷️ Get next version
         id: get-next-version
-        uses: aproorg/github-workflows/.github/actions/get-next-version@main
+        uses: ./.github/actions/get-next-version
         with:
           github_token: ${{ secrets.token }}
 
-  build-and-push:
-    name: "️️️🏗️ Build and push"
-    needs:
-      - terraform-quality-checks
-      - get-next-version
-      - application-quality-checks
-    if: ${{ needs.application-quality-checks.result == 'success' && needs.terraform-quality-checks.result == 'success' && needs.get-next-version.outputs.new_release_published == 'true' }}
-    runs-on: ubuntu-latest
-    steps:
-      - name: 📁 Checkout
-        uses: actions/checkout@v4
+  # build-and-push:
+  #   name: "️️️🏗️ Build and push"
+  #   needs:
+  #     - terraform-quality-checks
+  #     - get-next-version
+  #     - application-quality-checks
+  #   if: ${{ needs.application-quality-checks.result == 'success' && needs.terraform-quality-checks.result == 'success' && needs.get-next-version.outputs.new_release_published == 'true' }}
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - name: 📁 Checkout
+  #       uses: actions/checkout@v4
 
-      - name: "️️️🏗️ Build and push image"
-        uses: aproorg/github-workflows/.github/actions/build-and-push-image@main
-        with:
-          AWS_REGION: ${{ inputs.aws_region }}
-          AWS_ROLE_ARN: ${{ inputs.github_ci_ecr_role_arn }}
-          ECR_REPOSITORY: ${{ inputs.ecr_repository }}
+  #     - name: "️️️🏗️ Build and push image"
+  #       uses: .github/actions/build-and-push-image
+  #       with:
+  #         AWS_REGION: ${{ inputs.aws_region }}
+  #         AWS_ROLE_ARN: ${{ inputs.github_ci_ecr_role_arn }}
+  #         ECR_REPOSITORY: ${{ inputs.ecr_repository }}
 
-  deploy-to-dev:
-    name: "🚀 Deploy to dev"
-    environment: dev
-    needs:
-      - build-and-push
-    if: ${{ needs.get-next-version.outputs.new_release_published == 'true' }}
-    runs-on: ubuntu-latest
-    steps:
-      - name: 📁 Checkout
-        uses: actions/checkout@v4
+  # deploy-to-dev:
+  #   name: "🚀 Deploy to dev"
+  #   environment: dev
+  #   needs:
+  #     - build-and-push
+  #   if: ${{ needs.get-next-version.outputs.new_release_published == 'true' }}
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - name: 📁 Checkout
+  #       uses: actions/checkout@v4
 
-      - name: "🚀 Deploy to dev"
-        uses: aproorg/github-workflows/.github/actions/deploy-ecs-service@main
-        with:
-          AWS_REGION: ${{ inputs.aws_region }}
-          ENVIRONMENT: dev
-          AWS_DEPLOYMENT_ROLE: ${{ inputs.github_ci_role_arn }}
-          IMAGE_TAG: latest
-          FORCE_NEW_DEPLOYMENT: true
-          SERVICE_NAME: ${{ inputs.service_name}}
-          CLUSTER_NAME: ${{ inputs.cluster_name }}
-          TERRAFORM_VERSION: ${{ inputs.terraform_version }}
+  #     - name: "🚀 Deploy to dev"
+  #       uses: .github/actions/deploy-ecs-service
+  #       with:
+  #         AWS_REGION: ${{ inputs.aws_region }}
+  #         ENVIRONMENT: dev
+  #         AWS_DEPLOYMENT_ROLE: ${{ inputs.github_ci_role_arn }}
+  #         IMAGE_TAG: latest
+  #         FORCE_NEW_DEPLOYMENT: true
+  #         SERVICE_NAME: ${{ inputs.service_name}}
+  #         CLUSTER_NAME: ${{ inputs.cluster_name }}
+  #         TERRAFORM_VERSION: ${{ inputs.terraform_version }}
