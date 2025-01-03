@@ -54,6 +54,7 @@ jobs:
     steps:
       - name: 📁 Checkout
         uses: actions/checkout@v4
+
       - name: 🏷️ Get next version
         id: get-next-version
         uses: aproorg/github-workflows/.github/actions/get-next-version@main
