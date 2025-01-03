@@ -65,7 +65,7 @@ jobs:
     needs:
       - terraform-quality-checks
       - get-next-version
-    if: ${{ needs.terraform-quality-checks.result == 'success' && needs.get-next-version.outputs.new_release_published == 'true' }}
+    if: ${{ needs.get-next-version.outputs.new_release_published == 'true' }}
     runs-on: ubuntu-latest
     steps:
       - name: 📁 Checkout
