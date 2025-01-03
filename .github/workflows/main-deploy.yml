@@ -6,7 +6,6 @@ on:
         required: true
         type: string
       aws_region:
-        required: true
         default: eu-west-1
         type: string
       github_ci_role_arn:
