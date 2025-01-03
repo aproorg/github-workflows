@@ -24,6 +24,10 @@ on:
       ecr_repository:
         required: true
         type: string
+      terraform_version:
+        description: "Terraform version"
+        type: string
+        default: "1.9.8"
     secrets:
       token:
         required: true
@@ -36,6 +40,8 @@ jobs:
   terraform-quality-checks:
     name: "✅ Terraform Quality checks"
     uses: aproorg/github-workflows/.github/workflows/terraform-quality-checks.yml@main
+    with:
+      terraform_version: ${{ inputs.terraform_version }}
 
   application-quality-checks:
     name: '✅ Application quality checks'
@@ -86,7 +92,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: "🚀 Deploy to dev"
-        uses: aproorg/github-workflows/.github/actions/deploy@main
+        uses: aproorg/github-workflows/.github/actions/deploy-ecs-service@main
         with:
           AWS_REGION: ${{ inputs.aws_region }}
           ENVIRONMENT: dev
@@ -95,3 +101,4 @@ jobs:
           FORCE_NEW_DEPLOYMENT: true
           SERVICE_NAME: ${{ inputs.service_name}}
           CLUSTER_NAME: ${{ inputs.cluster_name }}
+          TERRAFORM_VERSION: ${{ inputs.terraform_version }}

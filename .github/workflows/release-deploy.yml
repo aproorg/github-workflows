@@ -26,6 +26,10 @@ on:
       ecr_repository:
         required: true
         type: string
+      terraform_version:
+        description: "Terraform version"
+        type: string
+        default: "1.9.8"
 
 permissions:
   id-token: write # Required f. IAM Token
@@ -59,12 +63,13 @@ jobs:
         uses: actions/checkout@v4
 
       - name: 🚀 Deploy to staging
-        uses: aproorg/github-workflows/.github/actions/deploy@main
+        uses: aproorg/github-workflows/.github/actions/deploy-ecs-service@main
         with:
           AWS_REGION: ${{ inputs.aws_region }}
           AWS_DEPLOYMENT_ROLE: ${{ inputs.github_ci_role_staging_arn }}
           ENVIRONMENT: staging
           IMAGE_TAG: ${{ github.event.release.tag_name }}
+          TERRAFORM_VERSION: ${{ inputs.terraform_version }}
 
   deploy-to-prod:
     name: '🚀 Deploy to prod'
@@ -78,9 +83,10 @@ jobs:
         uses: actions/checkout@v4
 
       - name: 🚀 Deploy to prod
-        uses: aproorg/github-workflows/.github/actions/deploy@main
+        uses: aproorg/github-workflows/.github/actions/deploy-ecs-service@main
         with:
           AWS_REGION: ${{inputs.aws_region}}
           AWS_DEPLOYMENT_ROLE: ${{ inputs.github_ci_role_prod_arn }}
           ENVIRONMENT: prod
           IMAGE_TAG: ${{ github.event.release.tag_name }}
+          TERRAFORM_VERSION: ${{ inputs.terraform_version }}

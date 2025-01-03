@@ -5,7 +5,6 @@ on:
   workflow_call:
     inputs:
       terraform_version:
-        required: true
         description: "Terraform version"
         type: string
         default: "1.9.8"
