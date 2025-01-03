@@ -44,7 +44,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: 🔖 Version tag image
-        uses: aproorg/github-workflows/.github/actions/retag-image@main
+        uses: ./.github/actions/retag-image
         with:
           AWS_REGION: ${{ inputs.aws_region }}
           AWS_ROLE_ARN: ${{ inputs.github_ci_ecr_role_arn }}
@@ -63,7 +63,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: 🚀 Deploy to staging
-        uses: aproorg/github-workflows/.github/actions/deploy-ecs-service@main
+        uses: ./.github/actions/deploy-ecs-service
         with:
           AWS_REGION: ${{ inputs.aws_region }}
           AWS_DEPLOYMENT_ROLE: ${{ inputs.github_ci_role_staging_arn }}
@@ -83,7 +83,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: 🚀 Deploy to prod
-        uses: aproorg/github-workflows/.github/actions/deploy-ecs-service@main
+        uses: ./.github/actions/deploy-ecs-service
         with:
           AWS_REGION: ${{inputs.aws_region}}
           AWS_DEPLOYMENT_ROLE: ${{ inputs.github_ci_role_prod_arn }}
