@@ -1,0 +1,32 @@
+name: '📝 Get Next Version'
+description: 'Get next semantic version'
+
+inputs:
+  github_token:
+    description: 'Github token'
+    required: true
+
+outputs:
+  last_release_version:
+    description: 'Version of the last release'
+    value: ${{ steps.semantic.outputs.last_release_version }}
+  new_release_version:
+    description: 'Version of the new release'
+    value: ${{ steps.semantic.outputs.new_release_version }}
+  new_release_git_tag:
+    description: 'Github tag of the new release'
+    value: ${{ steps.semantic.outputs.new_release_git_tag }}
+  new_release_published:
+    description: 'Whether a new release was published'
+    value: ${{ steps.semantic.outputs.new_release_published }}
+
+runs:
+  using: composite
+  steps:
+    - name: ⏭️ Determine the next release version
+      id: semantic
+      uses: cycjimmy/semantic-release-action@v4
+      with:
+        dry_run: true
+      env:
+        GITHUB_TOKEN: ${{ inputs.github_token }}

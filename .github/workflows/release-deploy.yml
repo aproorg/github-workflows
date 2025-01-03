@@ -1,0 +1,86 @@
+name: 🚀 Release
+on: 
+  workflow_call:
+    inputs:
+      aws_region:
+        required: true
+        default: eu-west-1
+        type: string
+      github_ci_ecr_role_arn:
+        required: true
+        type: string
+      deploy_staging:
+        required: true
+        type: boolean
+        default: true
+      deploy_prod:
+        required: true
+        type: boolean
+        default: true
+      github_ci_role_prod_arn:
+        required: false
+        type: string
+      github_ci_role_staging_arn:
+        required: false
+        type: string
+      ecr_repository:
+        required: true
+        type: string
+
+permissions:
+  id-token: write # Required f. IAM Token
+  contents: write
+
+jobs:
+  version-tag:
+    name: 🔖 Version tag image
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📁 Checkout
+        uses: actions/checkout@v4
+
+      - name: 🔖 Version tag image
+        uses: aproorg/github-workflows/.github/actions/retag-image@main
+        with:
+          AWS_REGION: ${{ inputs.aws_region }}
+          AWS_ROLE_ARN: ${{ inputs.github_ci_ecr_role_arn }}
+          ECR_REPOSITORY: ${{ inputs.ecr_repository }}
+          VERSION_TAG: ${{ github.event.release.tag_name }}
+    
+  deploy-to-staging:
+    name: '🚀 Deploy to staging'
+    environment: staging
+    if: ${{ inputs.deploy_staging == true }}
+    needs:
+      - version-tag
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📁 Checkout
+        uses: actions/checkout@v4
+
+      - name: 🚀 Deploy to staging
+        uses: aproorg/github-workflows/.github/actions/deploy@main
+        with:
+          AWS_REGION: ${{ inputs.aws_region }}
+          AWS_DEPLOYMENT_ROLE: ${{ inputs.github_ci_role_staging_arn }}
+          ENVIRONMENT: staging
+          IMAGE_TAG: ${{ github.event.release.tag_name }}
+
+  deploy-to-prod:
+    name: '🚀 Deploy to prod'
+    environment: prod
+    if: ${{ inputs.deploy_prod == true }}
+    needs:
+      - version-tag
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📁 Checkout
+        uses: actions/checkout@v4
+
+      - name: 🚀 Deploy to prod
+        uses: aproorg/github-workflows/.github/actions/deploy@main
+        with:
+          AWS_REGION: ${{inputs.aws_region}}
+          AWS_DEPLOYMENT_ROLE: ${{ inputs.github_ci_role_prod_arn }}
+          ENVIRONMENT: prod
+          IMAGE_TAG: ${{ github.event.release.tag_name }}

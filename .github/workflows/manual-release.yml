@@ -1,0 +1,38 @@
+name: '✋ Manual Release'
+on:
+  workflow_call:
+    secrets:
+      token:
+        required: true
+
+jobs:
+  get-next-version:
+    name: 🏷️ Get next version
+    runs-on: ubuntu-latest
+    outputs:
+      new_release_published: ${{ steps.get-next-version.outputs.new_release_published }}
+    steps:
+      - name: 📁 Checkout
+        uses: actions/checkout@v4
+      - name: 🏷️ Get next version
+        id: get-next-version
+        uses: aproorg/github-workflows/.github/actions/get-next-version@main
+        with:
+          github_token: ${{ secrets.token }}
+
+  publish:
+    needs:
+      - get-next-version
+    name: ⏯️ Publish new release
+    if: ${{ needs.get-next-version.outputs.new_release_published == 'true' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📁 Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: ⏯️ Publish new release
+        uses: aproorg/github-workflows/.github/actions/release@main
+        with:
+          github_token: ${{ secrets.token }}

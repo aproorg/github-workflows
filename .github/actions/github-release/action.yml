@@ -1,0 +1,35 @@
+name: ⏯️ Release
+description: Release new semantic version
+
+inputs:
+  github_token:
+    description: 'Github token'
+    required: true
+
+outputs:
+  new_release_version:
+    description: 'Version of the new release'
+    value: ${{ steps.semantic.outputs.new_release_version }}
+  new_release_git_tag:
+    description: 'Github tag of the new release'
+    value: ${{ steps.semantic.outputs.new_release_git_tag }}
+  new_release_published:
+    description: 'Whether a new release was published'
+    value: ${{ steps.semantic.outputs.new_release_published }}
+
+runs:
+  using: composite
+  steps:
+    - name: ⏯️ Release
+      id: semantic
+      uses: cycjimmy/semantic-release-action@v4
+      env:
+        GITHUB_TOKEN: ${{ inputs.github_token }}
+    - name: ⬆️ Update major tag
+      uses: richardsimko/update-tag@v1.0.11
+      id: update-major-tag
+      if: steps.semantic.outputs.new_release_published == 'true'
+      with:
+        tag_name: v${{ steps.semantic.outputs.new_release_major_version }}
+      env:
+        GITHUB_TOKEN: ${{ inputs.github_token }}
