@@ -3,18 +3,18 @@ on:
   workflow_call:
     inputs:
       aws_region:
-        required: true
+        required: false
         default: eu-west-1
         type: string
       github_ci_ecr_role_arn:
         required: true
         type: string
       deploy_staging:
-        required: true
+        required: false
         type: boolean
         default: true
       deploy_prod:
-        required: true
+        required: false
         type: boolean
         default: true
       github_ci_role_prod_arn:
