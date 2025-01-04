@@ -9,11 +9,11 @@ on:
       github_ci_ecr_role_arn:
         required: true
         type: string
-      deploy_staging:
+      deploy_to_staging:
         required: false
         type: boolean
         default: true
-      deploy_prod:
+      deploy_to_prod:
         required: false
         type: boolean
         default: true
@@ -54,7 +54,7 @@ jobs:
   deploy-to-staging:
     name: '🚀 Deploy to staging'
     environment: staging
-    if: ${{ inputs.deploy_staging == true }}
+    if: ${{ inputs.deploy_to_staging == true }}
     needs:
       - version-tag
     runs-on: ubuntu-latest
@@ -74,7 +74,7 @@ jobs:
   deploy-to-prod:
     name: '🚀 Deploy to prod'
     environment: prod
-    if: ${{ inputs.deploy_prod == true }}
+    if: ${{ inputs.deploy_to_prod == true }}
     needs:
       - version-tag
     runs-on: ubuntu-latest
