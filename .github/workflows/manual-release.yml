@@ -33,6 +33,6 @@ jobs:
           fetch-depth: 0
 
       - name: ⏯️ Publish new release
-        uses: aproorg/github-workflows/.github/actions/release@main
+        uses: aproorg/github-workflows/.github/actions/github-release@main
         with:
           github_token: ${{ secrets.token }}
