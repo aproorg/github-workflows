@@ -12,6 +12,13 @@ inputs:
   AWS_DEPLOYMENT_ROLE:
     description: 'The ARN of the AWS github-ci role the role to use for deployment'
     required: true
+  DEPLOY_SHARED:
+    description: 'Deploy the shared state that creates the ECR repo'
+    required: false
+    default: "false"
+  AWS_ECR_DEPLOYMENT_ROLE:
+    description: 'The ARN of the AWS github-ci role the role to use for ECR deployment'
+    required: false
   IMAGE_TAG:
     description: 'The version tag of the image to deploy. Can be any image tag e.g. latest, 1.0.0, git sha'
     required: true
@@ -33,12 +40,6 @@ inputs:
 runs:
   using: 'composite'
   steps:
-    - name: 'Configure AWS Credentials'
-      uses: aws-actions/configure-aws-credentials@v4
-      with:
-        role-to-assume: ${{ inputs.AWS_DEPLOYMENT_ROLE }}
-        aws-region: ${{ inputs.AWS_REGION }}
-
     - name: Setup Terraform
       uses: hashicorp/setup-Terraform@v3
       with:
@@ -47,6 +48,27 @@ runs:
     - name: Terraform version
       shell: bash
       run: terraform --version
+
+    - name: 'Configure Shared Account AWS Credentials'
+      if: ${{ inputs.DEPLOY_SHARED }}
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        role-to-assume: ${{ inputs.AWS_ECR_DEPLOYMENT_ROLE }}
+        aws-region: ${{ inputs.AWS_REGION }}
+
+    - name: Terraform apply
+      shell: bash
+      if: ${{ inputs.DEPLOY_SHARED }}
+      run: |
+        cd terraform/shared
+        terraform init
+        terraform apply -auto-approve
+
+    - name: 'Configure AWS Credentials'
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        role-to-assume: ${{ inputs.AWS_DEPLOYMENT_ROLE }}
+        aws-region: ${{ inputs.AWS_REGION }}
 
     - name: Terraform apply
       shell: bash
