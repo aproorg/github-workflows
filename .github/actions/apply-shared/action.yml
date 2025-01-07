@@ -27,7 +27,6 @@ runs:
       run: terraform --version
 
     - name: "Configure Shared Account AWS Credentials"
-      if: ${{ inputs.DEPLOY_SHARED }}
       uses: aws-actions/configure-aws-credentials@v4
       with:
         role-to-assume: ${{ inputs.AWS_ECR_DEPLOYMENT_ROLE }}
@@ -35,7 +34,6 @@ runs:
 
     - name: Terraform apply
       shell: bash
-      if: ${{ inputs.DEPLOY_SHARED }}
       run: |
         cd terraform/shared
         terraform init
