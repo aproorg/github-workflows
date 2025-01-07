@@ -1,44 +1,37 @@
-name: '🚀 Deploy ECS service'
-description: 'Deploy service on ECS with terraform'
+name: "🚀 Deploy ECS service"
+description: "Deploy service on ECS with terraform"
 
 inputs:
   AWS_REGION:
-    description: 'The AWS region to use'
+    description: "The AWS region to use"
     required: true
     default: eu-west-1
   ENVIRONMENT:
-    description: 'Enter the environment.'
+    description: "Enter the environment."
     required: true
   AWS_DEPLOYMENT_ROLE:
-    description: 'The ARN of the AWS github-ci role the role to use for deployment'
+    description: "The ARN of the AWS github-ci role the role to use for deployment"
     required: true
-  DEPLOY_SHARED:
-    description: 'Deploy the shared state that creates the ECR repo'
-    required: false
-    default: "false"
-  AWS_ECR_DEPLOYMENT_ROLE:
-    description: 'The ARN of the AWS github-ci role the role to use for ECR deployment'
-    required: false
   IMAGE_TAG:
-    description: 'The version tag of the image to deploy. Can be any image tag e.g. latest, 1.0.0, git sha'
+    description: "The version tag of the image to deploy. Can be any image tag e.g. latest, 1.0.0, git sha"
     required: true
   FORCE_NEW_DEPLOYMENT:
-    description: 'Force a new deployment even if the image tag is the same as the current deployment. E.g. latest'
+    description: "Force a new deployment even if the image tag is the same as the current deployment. E.g. latest"
     required: false
     default: false
   SERVICE_NAME:
-    description: 'The name of the service to deploy. Only required if force new deployment is true'
+    description: "The name of the service to deploy. Only required if force new deployment is true"
     required: false
   CLUSTER_NAME:
-    description: 'The name of the ECS cluster to deploy to. Only required if force new deployment is true'
+    description: "The name of the ECS cluster to deploy to. Only required if force new deployment is true"
     required: false
   TERRAFORM_VERSION:
-    description: 'The version of Terraform to use'
+    description: "The version of Terraform to use"
     required: false
     default: 1.9.8
 
 runs:
-  using: 'composite'
+  using: "composite"
   steps:
     - name: Setup Terraform
       uses: hashicorp/setup-Terraform@v3
@@ -49,22 +42,7 @@ runs:
       shell: bash
       run: terraform --version
 
-    - name: 'Configure Shared Account AWS Credentials'
-      if: ${{ inputs.DEPLOY_SHARED }}
-      uses: aws-actions/configure-aws-credentials@v4
-      with:
-        role-to-assume: ${{ inputs.AWS_ECR_DEPLOYMENT_ROLE }}
-        aws-region: ${{ inputs.AWS_REGION }}
-
-    - name: Terraform apply
-      shell: bash
-      if: ${{ inputs.DEPLOY_SHARED }}
-      run: |
-        cd terraform/shared
-        terraform init
-        terraform apply -auto-approve
-
-    - name: 'Configure AWS Credentials'
+    - name: "Configure AWS Credentials"
       uses: aws-actions/configure-aws-credentials@v4
       with:
         role-to-assume: ${{ inputs.AWS_DEPLOYMENT_ROLE }}
@@ -85,3 +63,11 @@ runs:
           --cluster ${{ inputs.CLUSTER_NAME }} \
           --service ${{ inputs.SERVICE_NAME }} \
           --force-new-deployment
+
+    - name: Wait for stable
+      shell: bash
+      if: ${{ inputs.FORCE_NEW_DEPLOYMENT }}
+      run: |
+        aws ecs wait services-stable \
+          --cluster ${{ inputs.CLUSTER_NAME }} \
+          --services ${{ inputs.SERVICE_NAME }}
