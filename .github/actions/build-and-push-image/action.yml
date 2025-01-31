@@ -1,19 +1,23 @@
-name: '🏗️ Build and push image'
-description: 'Build and push image to ECR'
+name: "🏗️ Build and push image"
+description: "Build and push image to ECR"
 
 inputs:
   AWS_REGION:
-    description: 'The AWS region to use'
+    description: "The AWS region to use"
     required: true
   AWS_ROLE_ARN:
-    description: 'The ARN of the AWS github-ci role to use to push to ECR'
+    description: "The ARN of the AWS github-ci role to use to push to ECR"
     required: true
   ECR_REPOSITORY:
-    description: 'The name of the ECR repository'
+    description: "The name of the ECR repository"
     required: true
+  WORKING_DIRECTORY:
+    description: "The working directory to use"
+    required: false
+    default: "."
 
 runs:
-  using: 'composite'
+  using: "composite"
   steps:
     - name: 🔐 Configure AWS credentials
       uses: aws-actions/configure-aws-credentials@v4
@@ -30,7 +34,7 @@ runs:
       uses: docker/metadata-action@v5
       id: meta
       with:
-        images: '${{ steps.login-ecr.outputs.registry }}/${{ inputs.ECR_REPOSITORY }}'
+        images: "${{ steps.login-ecr.outputs.registry }}/${{ inputs.ECR_REPOSITORY }}"
         tags: |
           latest
           type=sha,prefix=sha-,format=long
@@ -45,3 +49,4 @@ runs:
         push: true
         tags: ${{ steps.meta.outputs.tags }}
         labels: ${{ steps.meta.outputs.labels }}
+        context: ${{ inputs.WORKING_DIRECTORY }}
