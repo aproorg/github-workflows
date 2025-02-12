@@ -27,9 +27,9 @@ on:
         required: true
         type: string
       terraform_version:
-        description: "Terraform version"
+        description: 'Terraform version'
         type: string
-        default: "1.9.8"
+        default: '1.9.8'
       service_name:
         required: true
         type: string
@@ -39,6 +39,10 @@ on:
       cluster_name_prod:
         required: true
         type: string
+      pre_applied_resources:
+        description: 'Resources to apply before main deploy'
+        type: string
+        default: '[]'
 
 permissions:
   id-token: write # Required f. IAM Token
@@ -61,7 +65,7 @@ jobs:
           VERSION_TAG: ${{ github.event.release.tag_name }}
 
   deploy-to-staging:
-    name: "🚀 Deploy to staging"
+    name: '🚀 Deploy to staging'
     environment: staging
     if: ${{ inputs.deploy_to_staging == true }}
     needs:
@@ -81,9 +85,10 @@ jobs:
           TERRAFORM_VERSION: ${{ inputs.terraform_version }}
           SERVICE_NAME: ${{ inputs.service_name}}
           CLUSTER_NAME: ${{ inputs.cluster_name_staging }}
+          PRE_APPLIED_RESOURCES: ${{ inputs.pre_applied_resources }}
 
   deploy-to-prod:
-    name: "🚀 Deploy to prod"
+    name: '🚀 Deploy to prod'
     environment: prod
     if: ${{ inputs.deploy_to_prod == true }}
     needs:
@@ -103,3 +108,4 @@ jobs:
           TERRAFORM_VERSION: ${{ inputs.terraform_version }}
           SERVICE_NAME: ${{ inputs.service_name}}
           CLUSTER_NAME: ${{ inputs.cluster_name_prod }}
+          PRE_APPLIED_RESOURCES: ${{ inputs.pre_applied_resources }}
