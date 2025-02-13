@@ -13,6 +13,10 @@ inputs:
     description: "The version of Terraform to use"
     required: false
     default: 1.9.8
+  TERRAFORM_PATH:
+    description: "The path to the terraform files"
+    required: false
+    default: "terraform"
 
 runs:
   using: "composite"
@@ -35,6 +39,6 @@ runs:
     - name: Terraform apply
       shell: bash
       run: |
-        cd terraform/shared
+        cd ${{ inputs.TERRAFORM_PATH }}/shared
         terraform init
         terraform apply -auto-approve
