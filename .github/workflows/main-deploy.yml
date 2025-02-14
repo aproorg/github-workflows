@@ -1,4 +1,4 @@
-name: "🚀 Build and deploy to main"
+name: '🚀 Build and deploy to main'
 on:
   workflow_call:
     inputs:
@@ -24,13 +24,21 @@ on:
         required: true
         type: string
       terraform_version:
-        description: "Terraform version"
+        description: 'Terraform version'
         type: string
-        default: "1.9.8"
+        default: '1.9.8'
       working_directory:
-        description: "Working directory"
+        description: 'Working directory'
         type: string
-        default: "."
+        default: '.'
+      use_latest_tag:
+        description: 'Use latest tag'
+        type: boolean
+        default: true
+      pre_applied_resources:
+        description: 'Resources to apply before main deploy'
+        type: string
+        default: '[]'
     secrets:
       token:
         required: true
@@ -41,7 +49,7 @@ permissions:
 
 jobs:
   terraform-quality-checks:
-    name: "✅ Terraform Quality checks"
+    name: '✅ Terraform Quality checks'
     uses: ./.github/workflows/terraform-quality-checks.yml
     with:
       terraform_version: ${{ inputs.terraform_version }}
@@ -62,13 +70,13 @@ jobs:
           github_token: ${{ secrets.token }}
 
   create-ecr-repo:
-    name: "🚀 Apply shared"
+    name: '🚀 Apply shared'
     runs-on: ubuntu-latest
     steps:
       - name: 📁 Checkout
         uses: actions/checkout@v4
 
-      - name: "🚀 Apply shared"
+      - name: '🚀 Apply shared'
         uses: aproorg/github-workflows/.github/actions/apply-shared@main
         with:
           AWS_REGION: ${{ inputs.aws_region }}
@@ -76,7 +84,7 @@ jobs:
           TERRAFORM_VERSION: ${{ inputs.terraform_version }}
 
   build-and-push:
-    name: "️️️🏗️ Build and push"
+    name: '️️️🏗️ Build and push'
     needs:
       - terraform-quality-checks
       - get-next-version
@@ -86,7 +94,7 @@ jobs:
       - name: 📁 Checkout
         uses: actions/checkout@v4
 
-      - name: "️️️🏗️ Build and push image"
+      - name: '️️️🏗️ Build and push image'
         uses: aproorg/github-workflows/.github/actions/build-and-push-image@main
         with:
           AWS_REGION: ${{ inputs.aws_region }}
@@ -95,7 +103,7 @@ jobs:
           WORKING_DIRECTORY: ${{ inputs.working_directory }}
 
   deploy-to-dev:
-    name: "🚀 Deploy to dev"
+    name: '🚀 Deploy to dev'
     environment: dev
     needs:
       - build-and-push
@@ -105,14 +113,15 @@ jobs:
       - name: 📁 Checkout
         uses: actions/checkout@v4
 
-      - name: "🚀 Deploy to dev"
+      - name: '🚀 Deploy to dev'
         uses: aproorg/github-workflows/.github/actions/deploy-ecs-service@main
         with:
           AWS_REGION: ${{ inputs.aws_region }}
           ENVIRONMENT: dev
           AWS_DEPLOYMENT_ROLE: ${{ inputs.github_ci_role_arn }}
-          IMAGE_TAG: latest
+          IMAGE_TAG: ${{ inputs.use_latest_tag && 'latest' || format('sha-{0}', github.sha) }}
           FORCE_NEW_DEPLOYMENT: true
           SERVICE_NAME: ${{ inputs.service_name}}
           CLUSTER_NAME: ${{ inputs.cluster_name }}
           TERRAFORM_VERSION: ${{ inputs.terraform_version }}
+          PRE_APPLIED_RESOURCES: ${{ inputs.pre_applied_resources }}
