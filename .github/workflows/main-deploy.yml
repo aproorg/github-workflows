@@ -39,6 +39,10 @@ on:
         description: 'Resources to apply before main deploy'
         type: string
         default: '[]'
+      force_new_deployment:
+        description: 'Force a new deployment even if the image tag is the same as the current deployment. E.g. latest'
+        type: boolean
+        default: true
     secrets:
       token:
         required: true
@@ -120,7 +124,7 @@ jobs:
           ENVIRONMENT: dev
           AWS_DEPLOYMENT_ROLE: ${{ inputs.github_ci_role_arn }}
           IMAGE_TAG: ${{ inputs.use_latest_tag && 'latest' || format('sha-{0}', github.sha) }}
-          FORCE_NEW_DEPLOYMENT: true
+          FORCE_NEW_DEPLOYMENT: ${{ inputs.force_new_deployment }}
           SERVICE_NAME: ${{ inputs.service_name}}
           CLUSTER_NAME: ${{ inputs.cluster_name }}
           TERRAFORM_VERSION: ${{ inputs.terraform_version }}
