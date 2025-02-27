@@ -1,4 +1,4 @@
-name: '🚀 Build and deploy to main'
+name: "🚀 Build and deploy to main"
 on:
   workflow_call:
     inputs:
@@ -15,13 +15,23 @@ on:
         required: true
         type: string
       service_name:
-        required: true
+        required: false
         type: string
+      services:
+        required: false
+        type: string
+        description: 'Services names when deploying multiple services. Should be a list of objects with keys "directory" and "name" e.g. [{"directory": "core", "name": "apro-core-service"}]'
       cluster_name:
         required: true
         type: string
       ecr_repository:
-        required: true
+        required: false
+        type: string
+      ecr_repositories:
+        required: false
+        type: string
+      custom_build_script:
+        required: false
         type: string
       terraform_version:
         description: 'Terraform version'
@@ -31,6 +41,10 @@ on:
         description: 'Working directory'
         type: string
         default: '.'
+      build_checkout_with_lfs:
+        description: 'Checkout with LFS'
+        type: boolean
+        default: false
       use_latest_tag:
         description: 'Use latest tag'
         type: boolean
@@ -54,7 +68,7 @@ permissions:
 jobs:
   terraform-quality-checks:
     name: '✅ Terraform Quality checks'
-    uses: ./.github/workflows/terraform-quality-checks.yml
+    uses: aproorg/github-workflows/.github/workflows/terraform-quality-checks.yml@main
     with:
       terraform_version: ${{ inputs.terraform_version }}
 
@@ -73,59 +87,96 @@ jobs:
         with:
           github_token: ${{ secrets.token }}
 
+  unify-services:
+    name: '🤝 Unify service inputs'
+    runs-on: ubuntu-latest
+    outputs:
+      final_services: ${{ steps.unify-services.outputs.final_services }}
+    steps:
+      - name: 🤝 Unify service inputs
+        id: unify-services
+        run: |
+          if [ -n "${{ inputs.service_name }}" ] && [ -z "${{ inputs.services }}" ]; then
+            echo 'final_services=[{"directory":".","name":"${{ inputs.service_name }}"}]' >> $GITHUB_OUTPUT
+    
+          elif [ -z "${{ inputs.service_name }}" ] && [ -n "${{ inputs.services }}" ]; then
+            echo 'final_services=${{ inputs.services }}' >> $GITHUB_OUTPUT
+    
+          else
+            echo "ERROR: Exactly one of 'service_name' or 'services' must be set." >&2
+            exit 1
+          fi
+
+
   create-ecr-repo:
     name: '🚀 Apply shared'
+    needs: unify-services
+    strategy:
+      matrix:
+        include: ${{ fromJSON(needs.unify-services.outputs.final_services) }}
     runs-on: ubuntu-latest
     steps:
-      - name: 📁 Checkout
-        uses: actions/checkout@v4
+    - name: 📁 Checkout
+      uses: actions/checkout@v4
 
-      - name: '🚀 Apply shared'
-        uses: aproorg/github-workflows/.github/actions/apply-shared@main
-        with:
-          AWS_REGION: ${{ inputs.aws_region }}
-          AWS_ECR_DEPLOYMENT_ROLE: ${{ inputs.github_ci_ecr_role_arn }}
-          TERRAFORM_VERSION: ${{ inputs.terraform_version }}
+    - name: '🚀 Apply shared'
+      uses: aproorg/github-workflows/.github/actions/apply-shared@main
+      with:
+        AWS_REGION: ${{ inputs.aws_region }}
+        AWS_ECR_DEPLOYMENT_ROLE: ${{ inputs.github_ci_ecr_role_arn }}
+        TERRAFORM_VERSION: ${{ inputs.terraform_version }}
+        TERRAFORM_PATH: '${{ matrix.directory }}/terraform'
 
-  build-and-push:
-    name: '️️️🏗️ Build and push'
+  build-and-push-all-images:
+    name: '️️️🏗️ Build and push all images'
     needs:
       - terraform-quality-checks
       - get-next-version
     if: ${{ needs.get-next-version.outputs.new_release_published == 'true' }}
     runs-on: ubuntu-latest
     steps:
-      - name: 📁 Checkout
-        uses: actions/checkout@v4
+    - name: 📁 Checkout
+      uses: actions/checkout@v4
+      with:
+        lfs: ${{ inputs.build_checkout_with_lfs }}
 
-      - name: '️️️🏗️ Build and push image'
-        uses: aproorg/github-workflows/.github/actions/build-and-push-image@main
-        with:
-          AWS_REGION: ${{ inputs.aws_region }}
-          AWS_ROLE_ARN: ${{ inputs.github_ci_ecr_role_arn }}
-          ECR_REPOSITORY: ${{ inputs.ecr_repository }}
-          WORKING_DIRECTORY: ${{ inputs.working_directory }}
+    - name: '️️️🏗️ Build and push image all images'
+      uses: aproorg/github-workflows/.github/actions/build-and-push-image@support-custom-build-scripts
+      with:
+        AWS_REGION: ${{ inputs.aws_region }}
+        AWS_ROLE_ARN: ${{ inputs.github_ci_ecr_role_arn }}
+        WORKING_DIRECTORY: ${{ inputs.working_directory }}
+        ECR_REPOSITORY: ${{ inputs.ecr_repository }}
+        ECR_REPOSITORIES: ${{ inputs.ecr_repositories }}
+        CUSTOM_BUILD_SCRIPT: ${{ inputs.custom_build_script }}
+
 
   deploy-to-dev:
     name: '🚀 Deploy to dev'
+    strategy:
+      matrix:
+        include: ${{ fromJSON(needs.unify-services.outputs.final_services) }}
     environment: dev
     needs:
-      - build-and-push
+      - build-and-push-all-images
+      - get-next-version
+      - unify-services
     if: ${{ needs.get-next-version.outputs.new_release_published == 'true' }}
     runs-on: ubuntu-latest
     steps:
-      - name: 📁 Checkout
-        uses: actions/checkout@v4
+    - name: 📁 Checkout
+      uses: actions/checkout@v4
 
-      - name: '🚀 Deploy to dev'
-        uses: aproorg/github-workflows/.github/actions/deploy-ecs-service@main
-        with:
-          AWS_REGION: ${{ inputs.aws_region }}
-          ENVIRONMENT: dev
-          AWS_DEPLOYMENT_ROLE: ${{ inputs.github_ci_role_arn }}
-          IMAGE_TAG: ${{ inputs.use_latest_tag && 'latest' || format('sha-{0}', github.sha) }}
-          FORCE_NEW_DEPLOYMENT: ${{ inputs.force_new_deployment }}
-          SERVICE_NAME: ${{ inputs.service_name}}
-          CLUSTER_NAME: ${{ inputs.cluster_name }}
-          TERRAFORM_VERSION: ${{ inputs.terraform_version }}
-          PRE_APPLIED_RESOURCES: ${{ inputs.pre_applied_resources }}
+    - name: '🚀 Deploy to dev'
+      uses: aproorg/github-workflows/.github/actions/deploy-ecs-service@support-custom-build-scripts
+      with:
+        AWS_REGION: ${{ inputs.aws_region }}
+        ENVIRONMENT: dev
+        AWS_DEPLOYMENT_ROLE: ${{ inputs.github_ci_role_arn }}
+        IMAGE_TAG: ${{ inputs.use_latest_tag && 'latest' || format('sha-{0}', github.sha) }}
+        FORCE_NEW_DEPLOYMENT: ${{ inputs.force_new_deployment }}
+        SERVICE_NAME: ${{ matrix.name }}
+        CLUSTER_NAME: ${{ inputs.cluster_name }}
+        TERRAFORM_VERSION: ${{ inputs.terraform_version }}
+        TERRAFORM_PATH: '${{ matrix.directory }}/terraform'
+        PRE_APPLIED_RESOURCES: ${{ inputs.pre_applied_resources }}

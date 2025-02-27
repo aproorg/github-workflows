@@ -9,44 +9,98 @@ inputs:
     description: "The ARN of the AWS github-ci role to use to push to ECR"
     required: true
   ECR_REPOSITORY:
-    description: "The name of the ECR repository"
-    required: true
+    description: "The name of the ECR repository. Required if ECR_REPOSITORIES is not set"
+    required: false
+  ECR_REPOSITORIES:
+    description: "The names of the ECR repositories. Required if ECR_REPOSITORY is not set"
+    required: false
   WORKING_DIRECTORY:
     description: "The working directory to use"
     required: false
     default: "."
+  CUSTOM_BUILD_SCRIPT:
+    description: "The custom build script to use"
+    required: false
 
 runs:
   using: "composite"
   steps:
-    - name: 🔐 Configure AWS credentials
-      uses: aws-actions/configure-aws-credentials@v4
-      with:
-        role-to-assume: ${{ inputs.AWS_ROLE_ARN }}
-        role-session-name: GitHub-Action-Role
-        aws-region: ${{ inputs.AWS_REGION }}
+  - name: 🔐 Configure AWS credentials
+    uses: aws-actions/configure-aws-credentials@v4
+    with:
+      role-to-assume: ${{ inputs.AWS_ROLE_ARN }}
+      role-session-name: GitHub-Action-Role
+      aws-region: ${{ inputs.AWS_REGION }}
 
-    - name: 🔓 Login to Amazon ECR
-      id: login-ecr
-      uses: aws-actions/amazon-ecr-login@v2
+  - name: 🔓 Login to Amazon ECR
+    id: login-ecr
+    uses: aws-actions/amazon-ecr-login@v2
 
-    - name: 🐳 Docker Metadata
-      uses: docker/metadata-action@v5
-      id: meta
-      with:
-        images: "${{ steps.login-ecr.outputs.registry }}/${{ inputs.ECR_REPOSITORY }}"
-        tags: |
-          latest
-          type=sha,prefix=sha-,format=long
-          type=ref,event=branch
-          type=ref,event=pr
-          type=ref,event=tag
+  - name: 🧩 Parse ECR repositories
+    id: parse
+    shell: bash
+    run: |
+      if [ -n "${{ inputs.ECR_REPOSITORIES }}" ]; then
+        repos=$(echo "${{ inputs.ECR_REPOSITORIES }}" | tr ',' '\n')
+      elif [ -n "${{ inputs.ECR_REPOSITORY }}" ]; then
+        repos="${{ inputs.ECR_REPOSITORY }}"
+      else
+        echo "Error: Either ECR_REPOSITORY or ECR_REPOSITORIES must be provided."
+        exit 1
+      fi
+      
+      echo "repos<<EOF" >> $GITHUB_OUTPUT
+      echo "$repos" >> $GITHUB_OUTPUT
+      echo "EOF" >> $GITHUB_OUTPUT
 
-    - name: 🏗️ Build and push
-      if: steps.check-image-tag.outputs.exists != 'true'
-      uses: docker/build-push-action@v5
-      with:
-        push: true
-        tags: ${{ steps.meta.outputs.tags }}
-        labels: ${{ steps.meta.outputs.labels }}
-        context: ${{ inputs.WORKING_DIRECTORY }}
+      # Build a multiline string of full ECR paths
+      images=""
+      for repo in $repos; do
+        images="$images\n${{ steps.login-ecr.outputs.registry }}/${repo}"
+      done
+
+      # Write images to this step's output
+      echo "images<<EOF" >> $GITHUB_OUTPUT
+      echo -e "$images" >> $GITHUB_OUTPUT
+      echo "EOF" >> $GITHUB_OUTPUT
+
+  - name: 🐳 Docker Metadata
+    uses: docker/metadata-action@v5
+    id: meta
+    with:
+      images: "${{ steps.parse.outputs.images }}"
+      tags: |
+        latest
+        type=sha,prefix=sha-,format=long
+        type=ref,event=branch
+        type=ref,event=pr
+        type=ref,event=tag
+
+  - name: 🏗️ Build and push
+    if: ${{ !inputs.CUSTOM_BUILD_SCRIPT }}
+    uses: docker/build-push-action@v5
+    with:
+      push: true
+      tags: ${{ steps.meta.outputs.tags }}
+      labels: ${{ steps.meta.outputs.labels }}
+      context: ${{ inputs.WORKING_DIRECTORY }}
+
+  - name: 🏗️ Build and push images with custom script
+    if: ${{ inputs.CUSTOM_BUILD_SCRIPT }}
+    shell: bash
+    working-directory: ${{ inputs.WORKING_DIRECTORY }}
+    run: |
+      ${{ inputs.CUSTOM_BUILD_SCRIPT }}
+      repos="${{ steps.parse.outputs.repos }}"
+      tags="${{ steps.meta.outputs.tags }}"
+      for repo in $repos; do
+        echo "Processing repository: $repo"
+        for tag in $tags; do
+          if [[ $tag == *"$repo"* ]]; then
+            echo "Tagging and pushing: $tag for image $repo"
+            docker tag "$repo" "$tag"
+            docker push "$tag"
+          fi
+        done
+      done
+
