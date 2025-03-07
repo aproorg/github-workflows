@@ -1,0 +1,34 @@
+name: Unify Services
+description: Unifies one or more services into a single output.
+author: Your Name
+
+inputs:
+  service_name:
+    description: A single service name
+    required: false
+  services:
+    description: Multiple services (JSON array of objects)
+    required: false
+
+outputs:
+  final_services:
+    value: ${{ steps.unify-services.outputs.final_services }}
+    description: The unified list of services (JSON array of objects)
+
+runs:
+  using: composite
+  steps:
+    - name: Unify service inputs
+      id: unify-services
+      shell: bash
+      run: |
+          if [ -n "${{ inputs.service_name }}" ] && [ -z "${{ inputs.services }}" ]; then
+            echo 'final_services=[{"directory":".","name":"${{ inputs.service_name }}"}]' >> $GITHUB_OUTPUT
+    
+          elif [ -z "${{ inputs.service_name }}" ] && [ -n "${{ inputs.services }}" ]; then
+            echo 'final_services=${{ inputs.services }}' >> $GITHUB_OUTPUT
+    
+          else
+            echo "ERROR: Exactly one of 'service_name' or 'services' must be set." >&2
+            exit 1
+          fi

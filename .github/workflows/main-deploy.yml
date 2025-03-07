@@ -95,17 +95,10 @@ jobs:
     steps:
       - name: 🤝 Unify service inputs
         id: unify-services
-        run: |
-          if [ -n "${{ inputs.service_name }}" ] && [ -z "${{ inputs.services }}" ]; then
-            echo 'final_services=[{"directory":".","name":"${{ inputs.service_name }}"}]' >> $GITHUB_OUTPUT
-    
-          elif [ -z "${{ inputs.service_name }}" ] && [ -n "${{ inputs.services }}" ]; then
-            echo 'final_services=${{ inputs.services }}' >> $GITHUB_OUTPUT
-    
-          else
-            echo "ERROR: Exactly one of 'service_name' or 'services' must be set." >&2
-            exit 1
-          fi
+        uses: aproorg/github-workflows/.github/actions/unify-services@main
+        with:
+          service_name: ${{ inputs.service_name }}
+          services: ${{ inputs.services }}
 
 
   create-ecr-repo:
@@ -141,7 +134,7 @@ jobs:
         lfs: ${{ inputs.build_checkout_with_lfs }}
 
     - name: '️️️🏗️ Build and push image all images'
-      uses: aproorg/github-workflows/.github/actions/build-and-push-image@support-custom-build-scripts
+      uses: aproorg/github-workflows/.github/actions/build-and-push-image@main
       with:
         AWS_REGION: ${{ inputs.aws_region }}
         AWS_ROLE_ARN: ${{ inputs.github_ci_ecr_role_arn }}
@@ -168,7 +161,7 @@ jobs:
       uses: actions/checkout@v4
 
     - name: '🚀 Deploy to dev'
-      uses: aproorg/github-workflows/.github/actions/deploy-ecs-service@support-custom-build-scripts
+      uses: aproorg/github-workflows/.github/actions/deploy-ecs-service@main
       with:
         AWS_REGION: ${{ inputs.aws_region }}
         ENVIRONMENT: dev
