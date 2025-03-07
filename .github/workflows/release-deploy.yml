@@ -24,15 +24,22 @@ on:
         required: false
         type: string
       ecr_repository:
-        required: true
+        required: false
+        type: string
+      ecr_repositories:
+        required: false
         type: string
       terraform_version:
         description: 'Terraform version'
         type: string
         default: '1.9.8'
       service_name:
-        required: true
+        required: false
         type: string
+      services:
+        required: false
+        type: string
+        description: 'Services names when deploying multiple services. Should be a list of objects with keys "directory" and "name" e.g. [{"directory": "core", "name": "apro-core-service"}]'
       cluster_name_staging:
         required: true
         type: string
@@ -62,14 +69,33 @@ jobs:
           AWS_REGION: ${{ inputs.aws_region }}
           AWS_ROLE_ARN: ${{ inputs.github_ci_ecr_role_arn }}
           ECR_REPOSITORY: ${{ inputs.ecr_repository }}
+          ECR_REPOSITORIES: ${{ inputs.ecr_repositories }}
           VERSION_TAG: ${{ github.event.release.tag_name }}
+
+  unify-services:
+    name: '🤝 Unify service inputs'
+    runs-on: ubuntu-latest
+    outputs:
+      final_services: ${{ steps.unify-services.outputs.final_services }}
+    steps:
+      - name: 🤝 Unify service inputs
+        id: unify-services
+        uses: ./.github/actions/unify-services
+        with:
+          service_name: ${{ inputs.service_name }}
+          services: ${{ inputs.services }}
+
 
   deploy-to-staging:
     name: '🚀 Deploy to staging'
+    strategy:
+      matrix:
+        include: ${{ fromJSON(needs.unify-services.outputs.final_services) }}
     environment: staging
     if: ${{ inputs.deploy_to_staging == true }}
     needs:
       - version-tag
+      - unify-services
     runs-on: ubuntu-latest
     steps:
       - name: 📁 Checkout
@@ -83,7 +109,8 @@ jobs:
           ENVIRONMENT: staging
           IMAGE_TAG: ${{ github.event.release.tag_name }}
           TERRAFORM_VERSION: ${{ inputs.terraform_version }}
-          SERVICE_NAME: ${{ inputs.service_name}}
+          TERRAFORM_PATH: '${{ matrix.directory }}/terraform'
+          SERVICE_NAME: ${{ matrix.name }}
           CLUSTER_NAME: ${{ inputs.cluster_name_staging }}
           PRE_APPLIED_RESOURCES: ${{ inputs.pre_applied_resources }}
 
@@ -91,8 +118,12 @@ jobs:
     name: '🚀 Deploy to prod'
     environment: prod
     if: ${{ inputs.deploy_to_prod == true }}
+    strategy:
+      matrix:
+        include: ${{ fromJSON(needs.unify-services.outputs.final_services) }}
     needs:
       - version-tag
+      - unify-services
     runs-on: ubuntu-latest
     steps:
       - name: 📁 Checkout
@@ -106,6 +137,7 @@ jobs:
           ENVIRONMENT: prod
           IMAGE_TAG: ${{ github.event.release.tag_name }}
           TERRAFORM_VERSION: ${{ inputs.terraform_version }}
-          SERVICE_NAME: ${{ inputs.service_name}}
-          CLUSTER_NAME: ${{ inputs.cluster_name_prod }}
+          TERRAFORM_PATH: '${{ matrix.directory }}/terraform'
+          SERVICE_NAME: ${{ matrix.name }}
+          CLUSTER_NAME: ${{ inputs.cluster_name_staging }}
           PRE_APPLIED_RESOURCES: ${{ inputs.pre_applied_resources }}

@@ -9,8 +9,11 @@ inputs:
     description: 'The ARN of the AWS github-ci role to use to push to ECR'
     required: true
   ECR_REPOSITORY:
-    description: 'The name of the ECR repository'
-    required: true
+    description: "The name of the ECR repository. Required if ECR_REPOSITORIES is not set"
+    required: false
+  ECR_REPOSITORIES:
+    description: "The names of the ECR repositories. Required if ECR_REPOSITORY is not set"
+    required: false
   VERSION_TAG:
     description: 'The version tag to apply to the image'
     required: true
@@ -30,7 +33,17 @@ runs:
       uses: aws-actions/amazon-ecr-login@v2
 
     - name: 🔖 Re-tag Image
+      if: ${{ inputs.ECR_REPOSITORY }}
       shell: bash
       run: |
         MANIFEST=$(aws ecr batch-get-image --repository-name ${{ inputs.ECR_REPOSITORY }} --image-ids imageTag=sha-${{ github.sha }} --query 'images[].imageManifest' --output text)
         aws ecr put-image --repository-name ${{ inputs.ECR_REPOSITORY }} --image-tag ${{ inputs.VERSION_TAG }} --image-manifest "$MANIFEST"
+
+    - name: 🔖 Re-tag Images
+      if: ${{ inputs.ECR_REPOSITORIES }}
+      shell: bash
+      run: |
+        for repo in ${{ inputs.ECR_REPOSITORIES }}; do
+          MANIFEST=$(aws ecr batch-get-image --repository-name $repo --image-ids imageTag=sha-${{ github.sha }} --query 'images[].imageManifest' --output text)
+          aws ecr put-image --repository-name $repo --image-tag ${{ inputs.VERSION_TAG }} --image-manifest "$MANIFEST"
+        done
