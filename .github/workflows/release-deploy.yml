@@ -80,7 +80,7 @@ jobs:
     steps:
       - name: 🤝 Unify service inputs
         id: unify-services
-        uses: ./.github/actions/unify-services
+        uses: aproorg/github-workflows/.github/actions/unify-services@main
         with:
           service_name: ${{ inputs.service_name }}
           services: ${{ inputs.services }}
