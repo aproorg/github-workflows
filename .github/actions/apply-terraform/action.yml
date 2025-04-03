@@ -1,0 +1,47 @@
+name: '🚀 Deploy ECS service'
+description: 'Deploy service on ECS with terraform'
+
+inputs:
+  AWS_REGION:
+    description: 'The AWS region to use'
+    required: true
+    default: eu-west-1
+  ENVIRONMENT:
+    description: 'Enter the environment.'
+    required: true
+  AWS_DEPLOYMENT_ROLE:
+    description: 'The ARN of the AWS github-ci role the role to use for deployment'
+    required: true
+  TERRAFORM_VERSION:
+    description: 'The version of Terraform to use'
+    required: false
+    default: 1.9.8
+  TERRAFORM_PATH:
+    description: "The path to the terraform files"
+    required: false
+    default: "terraform"
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Setup Terraform
+      uses: hashicorp/setup-Terraform@v3
+      with:
+        terraform_version: ${{ inputs.TERRAFORM_VERSION }}
+
+    - name: Terraform version
+      shell: bash
+      run: terraform --version
+
+    - name: 'Configure AWS Credentials'
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        role-to-assume: ${{ inputs.AWS_DEPLOYMENT_ROLE }}
+        aws-region: ${{ inputs.AWS_REGION }}
+
+    - name: Terraform apply
+      shell: bash
+      run: |
+        cd ${{ inputs.TERRAFORM_PATH }}/${{ inputs.ENVIRONMENT }}
+        terraform init
+        terraform apply -auto-approve
