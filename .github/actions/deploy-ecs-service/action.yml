@@ -63,13 +63,13 @@ runs:
         terraform init
         for resource in $(echo '${{ inputs.PRE_APPLIED_RESOURCES }}' | jq -r '.[]'); do
           echo "Applying target: $resource"
-          terraform apply -auto-approve -target="$resource"
+          terraform apply -auto-approve -target="$resource" -var 'image_tag=${{ inputs.IMAGE_TAG }}'
         done
         terraform apply -auto-approve -var 'image_tag=${{ inputs.IMAGE_TAG }}'
 
     - name: Force new deployment
       shell: bash
-      if: ${{ inputs.FORCE_NEW_DEPLOYMENT }}
+      if: ${{ inputs.FORCE_NEW_DEPLOYMENT == 'true' && inputs.SERVICE_NAME && inputs.CLUSTER_NAME }}
       run: |
         aws ecs update-service \
           --cluster ${{ inputs.CLUSTER_NAME }} \
@@ -78,7 +78,7 @@ runs:
 
     - name: Wait for stable
       shell: bash
-      if: ${{ inputs.FORCE_NEW_DEPLOYMENT }}
+      if: ${{ inputs.FORCE_NEW_DEPLOYMENT == 'true' && inputs.SERVICE_NAME && inputs.CLUSTER_NAME }}
       run: |
         aws ecs wait services-stable \
           --cluster ${{ inputs.CLUSTER_NAME }} \
