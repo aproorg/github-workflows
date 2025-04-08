@@ -1,0 +1,153 @@
+name: "🚀 Build and deploy to main"
+on:
+  workflow_call:
+    inputs:
+      aws_dev_account_id:
+        required: true
+        type: string
+      aws_region:
+        default: eu-west-1
+        type: string
+      github_ci_role_arn:
+        required: true
+        type: string
+      github_ci_ecr_role_arn:
+        required: true
+        type: string
+      services:
+        required: false
+        type: string
+        description: 'Services names when deploying multiple services. Should be a list of objects with keys "directory" and "name" e.g. [{"directory": "core", "name": "apro-core-service"}]'
+      cluster_name:
+        required: true
+        type: string
+      ecr_repository:
+        required: false
+        type: string
+      ecr_repositories:
+        required: false
+        type: string
+      custom_build_script:
+        required: false
+        type: string
+      terraform_version:
+        description: "Terraform version"
+        type: string
+        default: "1.9.8"
+      working_directory:
+        description: "Working directory"
+        type: string
+        default: "."
+      build_checkout_with_lfs:
+        description: "Checkout with LFS"
+        type: boolean
+        default: false
+      use_latest_tag:
+        description: "Use latest tag"
+        type: boolean
+        default: true
+      pre_applied_resources:
+        description: "Resources to apply before main deploy"
+        type: string
+        default: "[]"
+      terraform_path:
+        type: string
+        description: "The path to the terraform files"
+        required: false
+        default: "terraform"
+      force_new_deployment:
+        description: "Force a new deployment even if the image tag is the same as the current deployment. E.g. latest"
+        type: boolean
+        default: true
+    secrets:
+      token:
+        required: true
+
+permissions:
+  id-token: write # Required f. IAM Token
+  contents: write
+
+jobs:
+  terraform-quality-checks:
+    name: "✅ Terraform Quality checks"
+    uses: aproorg/github-workflows/.github/workflows/terraform-quality-checks.yml@main
+    with:
+      terraform_version: ${{ inputs.terraform_version }}
+
+  get-next-version:
+    name: 🏷️ Get next version
+    runs-on: ubuntu-latest
+    outputs:
+      new_release_published: ${{ steps.get-next-version.outputs.new_release_published }}
+    steps:
+      - name: 📁 Checkout
+        uses: actions/checkout@v4
+
+      - name: 🏷️ Get next version
+        id: get-next-version
+        uses: aproorg/github-workflows/.github/actions/get-next-version@main
+        with:
+          github_token: ${{ secrets.token }}
+
+  create-ecr-repo:
+    name: "🚀 Apply shared"
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📁 Checkout
+        uses: actions/checkout@v4
+
+      - name: "🚀 Apply shared"
+        uses: aproorg/github-workflows/.github/actions/apply-shared@main
+        with:
+          AWS_REGION: ${{ inputs.aws_region }}
+          AWS_ECR_DEPLOYMENT_ROLE: ${{ inputs.github_ci_ecr_role_arn }}
+          TERRAFORM_VERSION: ${{ inputs.terraform_version }}
+
+  build-and-push-all-images:
+    name: "️️️🏗️ Build and push all images"
+    strategy:
+      matrix:
+        include: ${{ fromJSON(inputs.services) }}
+    needs:
+      - terraform-quality-checks
+      - get-next-version
+    if: ${{ needs.get-next-version.outputs.new_release_published == 'true' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📁 Checkout
+        uses: actions/checkout@v4
+        with:
+          lfs: ${{ inputs.build_checkout_with_lfs }}
+
+      - name: "️️️🏗️ Build and push image all images"
+        uses: aproorg/github-workflows/.github/actions/build-and-push-image@main
+        with:
+          AWS_REGION: ${{ inputs.aws_region }}
+          AWS_ROLE_ARN: ${{ inputs.github_ci_ecr_role_arn }}
+          WORKING_DIRECTORY: ${{ matrix.directory }}
+          ECR_REPOSITORY: ${{ matrix.ecr_repository }}
+
+  deploy-to-dev:
+    name: "🚀 Deploy to dev"
+    environment: dev
+    needs:
+      - build-and-push-all-images
+      - get-next-version
+    if: ${{ needs.get-next-version.outputs.new_release_published == 'true' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📁 Checkout
+        uses: actions/checkout@v4
+
+      - name: "🚀 Deploy to dev"
+        uses: aproorg/github-workflows/.github/actions/deploy-ecs-service@kistill
+        with:
+          AWS_REGION: ${{ inputs.aws_region }}
+          ENVIRONMENT: dev
+          AWS_DEPLOYMENT_ROLE: ${{ inputs.github_ci_role_arn }}
+          IMAGE_TAG: ${{ format('sha-{0}', github.sha) }}
+          FORCE_NEW_DEPLOYMENT: false
+          SERVICES: ${{ inputs.services }}
+          CLUSTER_NAME: ${{ inputs.cluster_name }}
+          TERRAFORM_VERSION: ${{ inputs.terraform_version }}
+          PRE_APPLIED_RESOURCES: ${{ inputs.pre_applied_resources }}
