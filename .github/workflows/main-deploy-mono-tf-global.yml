@@ -42,23 +42,11 @@ on:
         description: "Checkout with LFS"
         type: boolean
         default: false
-      use_latest_tag:
-        description: "Use latest tag"
-        type: boolean
-        default: true
       pre_applied_resources:
         description: "Resources to apply before main deploy"
         type: string
         default: "[]"
-      terraform_path:
-        type: string
-        description: "The path to the terraform files"
-        required: false
-        default: "terraform"
-      force_new_deployment:
-        description: "Force a new deployment even if the image tag is the same as the current deployment. E.g. latest"
-        type: boolean
-        default: true
+
     secrets:
       token:
         required: true
@@ -146,7 +134,6 @@ jobs:
           ENVIRONMENT: dev
           AWS_DEPLOYMENT_ROLE: ${{ inputs.github_ci_role_arn }}
           IMAGE_TAG: ${{ format('sha-{0}', github.sha) }}
-          FORCE_NEW_DEPLOYMENT: false
           SERVICES: ${{ inputs.services }}
           CLUSTER_NAME: ${{ inputs.cluster_name }}
           TERRAFORM_VERSION: ${{ inputs.terraform_version }}
