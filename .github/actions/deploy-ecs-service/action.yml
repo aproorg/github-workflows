@@ -105,4 +105,4 @@ runs:
       run: |
         aws ecs wait services-stable \
           --cluster ${{ inputs.CLUSTER_NAME }} \
-          --services ${{ needs.service_list.outputs.service_list }}
+          --services ${{ steps.service_list.outputs.service_list }}
