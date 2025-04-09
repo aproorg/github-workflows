@@ -108,12 +108,13 @@ jobs:
           lfs: ${{ inputs.build_checkout_with_lfs }}
 
       - name: "️️️🏗️ Build and push image all images"
-        uses: aproorg/github-workflows/.github/actions/build-and-push-image@main
+        uses: aproorg/github-workflows/.github/actions/build-and-push-image@kistill
         with:
           AWS_REGION: ${{ inputs.aws_region }}
           AWS_ROLE_ARN: ${{ inputs.github_ci_ecr_role_arn }}
           WORKING_DIRECTORY: ${{ matrix.directory }}
           ECR_REPOSITORY: ${{ matrix.ecr_repository }}
+          DOCKERFILE: ${{ matrix.dockerfile }}
 
   deploy-to-dev:
     name: "🚀 Deploy to dev"
