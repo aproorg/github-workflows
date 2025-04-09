@@ -91,8 +91,6 @@ runs:
     - name: service list
       id: service_list
       if: ${{ inputs.SERVICES }}
-      outputs:
-        service_list: ${{ steps.service_list.outputs.service_list }}
       shell: bash
       run: |
         list=$(echo ${{ inputs.SERVICES }} | jq -r ' . |map(.name) | join(" ")')
@@ -101,7 +99,6 @@ runs:
     - name: Wait for all stable
       shell: bash
       if: ${{ inputs.SERVICES }}
-      needs: service_list
       run: |
         aws ecs wait services-stable \
           --cluster ${{ inputs.CLUSTER_NAME }} \
