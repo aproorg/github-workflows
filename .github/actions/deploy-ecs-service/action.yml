@@ -94,8 +94,8 @@ runs:
       shell: bash
       run: |
         list=$(echo '${{ inputs.SERVICES }}' | jq -r ' . |map(.name) | join(" ")')
-        echo 'service_list=${list}'
-        echo 'service_list=${list}' >> $GITHUB_OUTPUT
+        echo service_list=${list}
+        echo service_list=${list} >> $GITHUB_OUTPUT
 
     - name: Wait for all stable
       shell: bash
