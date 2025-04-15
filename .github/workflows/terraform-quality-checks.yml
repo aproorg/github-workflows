@@ -30,6 +30,18 @@ jobs:
           path: ~/.tflint.d/plugins
           key: tflint-${{ hashFiles('terraform/.tflint.hcl') }}
 
+      - uses: Homebrew/actions/setup-homebrew@master
+        name: "☕️ Set up Homebrew"
+        id: set-up-homebrew
+
+      - name: "📥 Cache Homebrew Bundler RubyGems"
+        id: cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.set-up-homebrew.outputs.gems-path }}
+          key: rubygems-${{ steps.set-up-homebrew.outputs.gems-hash }}
+          restore-keys: rubygems-
+      
       - uses: terraform-linters/setup-tflint@v4
         name: "🛠️ Setup TFLint"
         with:
@@ -40,6 +52,9 @@ jobs:
         with:
           terraform_version: ${{ inputs.terraform_version }}
 
+      - name: "⬇️ Install tools"
+        run: brew install tfenv
+      
       - name: "🔍 Versions"
         run: |
           terraform --version
