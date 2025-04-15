@@ -24,18 +24,6 @@ jobs:
           ref: ${{ github.head_ref }}
           fetch-depth: 0
 
-      - uses: Homebrew/actions/setup-homebrew@master
-        name: "☕️ Set up Homebrew"
-        id: set-up-homebrew
-
-      - name: "📥 Cache Homebrew Bundler RubyGems"
-        id: cache
-        uses: actions/cache@v4
-        with:
-          path: ${{ steps.set-up-homebrew.outputs.gems-path }}
-          key: rubygems-${{ steps.set-up-homebrew.outputs.gems-hash }}
-          restore-keys: rubygems-
-
       - uses: actions/cache@v4
         name: "📥 Cache plugin dir"
         with:
@@ -52,17 +40,19 @@ jobs:
         with:
           terraform_version: ${{ inputs.terraform_version }}
 
-      - name: "⬇️ Install tools"
-        run: brew install tfenv tfsec
-
       - name: "🔍 Versions"
         run: |
           terraform --version
           tflint --version
-          tfsec --version
           tfenv --version
 
       - name: "🔍 Lint Terraform"
         run: |
           tflint --recursive 
-          tfsec
+
+      - name: "👀 Run trivy security checks"
+        uses: aquasecurity/trivy-action@0.30.0
+        with:
+          scan-type: 'config'
+          exit-code: '1'
+          
