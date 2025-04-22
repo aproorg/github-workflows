@@ -53,11 +53,6 @@ on:
         description: "Resources to apply before main deploy"
         type: string
         default: "[]"
-      terraform_path:
-        type: string
-        description: "The path to the terraform files"
-        required: false
-        default: "terraform"
       force_new_deployment:
         description: "Force a new deployment even if the image tag is the same as the current deployment. E.g. latest"
         type: boolean
