@@ -14,9 +14,6 @@ on:
       github_ci_ecr_role_arn:
         required: true
         type: string
-      service_name:
-        required: false
-        type: string
       services:
         required: false
         type: string
@@ -45,18 +42,11 @@ on:
         description: "Checkout with LFS"
         type: boolean
         default: false
-      use_latest_tag:
-        description: "Use latest tag"
-        type: boolean
-        default: true
       pre_applied_resources:
         description: "Resources to apply before main deploy"
         type: string
         default: "[]"
-      force_new_deployment:
-        description: "Force a new deployment even if the image tag is the same as the current deployment. E.g. latest"
-        type: boolean
-        default: true
+
     secrets:
       token:
         required: true
@@ -87,25 +77,8 @@ jobs:
         with:
           github_token: ${{ secrets.token }}
 
-  unify-services:
-    name: "🤝 Unify service inputs"
-    runs-on: ubuntu-latest
-    outputs:
-      final_services: ${{ steps.unify-services.outputs.final_services }}
-    steps:
-      - name: 🤝 Unify service inputs
-        id: unify-services
-        uses: aproorg/github-workflows/.github/actions/unify-services@main
-        with:
-          service_name: ${{ inputs.service_name }}
-          services: ${{ inputs.services }}
-
   create-ecr-repo:
     name: "🚀 Apply shared"
-    needs: unify-services
-    strategy:
-      matrix:
-        include: ${{ fromJSON(needs.unify-services.outputs.final_services) }}
     runs-on: ubuntu-latest
     steps:
       - name: 📁 Checkout
@@ -117,10 +90,12 @@ jobs:
           AWS_REGION: ${{ inputs.aws_region }}
           AWS_ECR_DEPLOYMENT_ROLE: ${{ inputs.github_ci_ecr_role_arn }}
           TERRAFORM_VERSION: ${{ inputs.terraform_version }}
-          TERRAFORM_PATH: "${{ matrix.directory }}/terraform"
 
   build-and-push-all-images:
     name: "️️️🏗️ Build and push all images"
+    strategy:
+      matrix:
+        include: ${{ fromJSON(inputs.services) }}
     needs:
       - terraform-quality-checks
       - get-next-version
@@ -133,25 +108,20 @@ jobs:
           lfs: ${{ inputs.build_checkout_with_lfs }}
 
       - name: "️️️🏗️ Build and push image all images"
-        uses: aproorg/github-workflows/.github/actions/build-and-push-image@main
+        uses: aproorg/github-workflows/.github/actions/build-and-push-image@kistill
         with:
           AWS_REGION: ${{ inputs.aws_region }}
           AWS_ROLE_ARN: ${{ inputs.github_ci_ecr_role_arn }}
-          WORKING_DIRECTORY: ${{ inputs.working_directory }}
-          ECR_REPOSITORY: ${{ inputs.ecr_repository }}
-          ECR_REPOSITORIES: ${{ inputs.ecr_repositories }}
-          CUSTOM_BUILD_SCRIPT: ${{ inputs.custom_build_script }}
+          WORKING_DIRECTORY: ${{ matrix.directory }}
+          ECR_REPOSITORY: ${{ matrix.ecr_repository }}
+          DOCKERFILE: ${{ matrix.dockerfile }}
 
   deploy-to-dev:
     name: "🚀 Deploy to dev"
-    strategy:
-      matrix:
-        include: ${{ fromJSON(needs.unify-services.outputs.final_services) }}
     environment: dev
     needs:
       - build-and-push-all-images
       - get-next-version
-      - unify-services
     if: ${{ needs.get-next-version.outputs.new_release_published == 'true' }}
     runs-on: ubuntu-latest
     steps:
@@ -159,15 +129,13 @@ jobs:
         uses: actions/checkout@v4
 
       - name: "🚀 Deploy to dev"
-        uses: aproorg/github-workflows/.github/actions/deploy-ecs-service@main
+        uses: aproorg/github-workflows/.github/actions/deploy-ecs-service@kistill
         with:
           AWS_REGION: ${{ inputs.aws_region }}
           ENVIRONMENT: dev
           AWS_DEPLOYMENT_ROLE: ${{ inputs.github_ci_role_arn }}
-          IMAGE_TAG: ${{ inputs.use_latest_tag && 'latest' || format('sha-{0}', github.sha) }}
-          FORCE_NEW_DEPLOYMENT: ${{ inputs.force_new_deployment }}
-          SERVICE_NAME: ${{ matrix.name }}
+          IMAGE_TAG: ${{ format('sha-{0}', github.sha) }}
+          SERVICES: ${{ inputs.services }}
           CLUSTER_NAME: ${{ inputs.cluster_name }}
           TERRAFORM_VERSION: ${{ inputs.terraform_version }}
-          TERRAFORM_PATH: "${{ matrix.directory }}/terraform"
           PRE_APPLIED_RESOURCES: ${{ inputs.pre_applied_resources }}

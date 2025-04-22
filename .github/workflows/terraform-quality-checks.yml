@@ -8,6 +8,10 @@ on:
         description: "Terraform version"
         type: string
         default: "1.9.8"
+      working_directory:
+        description: "The working directory to use"
+        type: string
+        default: "."
 
 permissions:
   id-token: write # Required f. IAM Token
@@ -62,6 +66,7 @@ jobs:
           tfenv --version
 
       - name: "🔍 Lint Terraform"
+        working-directory: ${{ inputs.working_directory }}
         run: |
           tflint --recursive 
 
