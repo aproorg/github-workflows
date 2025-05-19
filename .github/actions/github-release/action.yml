@@ -25,6 +25,8 @@ runs:
       uses: cycjimmy/semantic-release-action@v4
       env:
         GITHUB_TOKEN: ${{ inputs.github_token }}
+      with:
+        semantic_version: 24.2.3
     - name: ⬆️ Update major tag
       uses: richardsimko/update-tag@v1.0.11
       id: update-major-tag

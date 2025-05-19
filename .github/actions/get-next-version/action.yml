@@ -28,5 +28,6 @@ runs:
       uses: cycjimmy/semantic-release-action@v4
       with:
         dry_run: true
+        semantic_version: 24.2.3
       env:
         GITHUB_TOKEN: ${{ inputs.github_token }}
