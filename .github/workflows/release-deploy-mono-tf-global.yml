@@ -1,0 +1,113 @@
+name: 🚀 Release
+on:
+  workflow_call:
+    inputs:
+      aws_region:
+        required: false
+        default: eu-west-1
+        type: string
+      github_ci_ecr_role_arn:
+        required: true
+        type: string
+      deploy_to_staging:
+        required: false
+        type: boolean
+        default: true
+      deploy_to_prod:
+        required: false
+        type: boolean
+        default: true
+      github_ci_role_prod_arn:
+        required: false
+        type: string
+      github_ci_role_staging_arn:
+        required: false
+        type: string
+      terraform_version:
+        description: "Terraform version"
+        type: string
+        default: "1.9.8"
+      services:
+        required: false
+        type: string
+        description: 'Services names when deploying multiple services. Should be a list of objects with keys "directory" and "name" e.g. [{"directory": "core", "name": "apro-core-service"}]'
+      cluster_name_staging:
+        required: true
+        type: string
+      cluster_name_prod:
+        required: true
+        type: string
+      pre_applied_resources:
+        description: "Resources to apply before main deploy"
+        type: string
+        default: "[]"
+
+permissions:
+  id-token: write # Required f. IAM Token
+  contents: write
+
+jobs:
+  version-tag:
+    name: 🔖 Version tag image
+    strategy:
+      matrix:
+        include: ${{ fromJSON(inputs.services) }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📁 Checkout
+        uses: actions/checkout@v4
+
+      - name: 🔖 Version tag image
+        uses: aproorg/github-workflows/.github/actions/retag-docker-image@main
+        with:
+          AWS_REGION: ${{ inputs.aws_region }}
+          AWS_ROLE_ARN: ${{ inputs.github_ci_ecr_role_arn }}
+          ECR_REPOSITORY: ${{ matrix.ecr_repository }}
+          ECR_REPOSITORIES: ${{ matrix.ecr_repositories }}
+          VERSION_TAG: ${{ github.event.release.tag_name }}
+
+  deploy-to-staging:
+    name: "🚀 Deploy to staging"
+    environment: staging
+    if: ${{ inputs.deploy_to_staging == true }}
+    needs:
+      - version-tag
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📁 Checkout
+        uses: actions/checkout@v4
+
+      - name: 🚀 Deploy to staging
+        uses: aproorg/github-workflows/.github/actions/deploy-ecs-service@kistill
+        with:
+          AWS_REGION: ${{ inputs.aws_region }}
+          AWS_DEPLOYMENT_ROLE: ${{ inputs.github_ci_role_staging_arn }}
+          ENVIRONMENT: staging
+          IMAGE_TAG: ${{ github.event.release.tag_name }}
+          TERRAFORM_VERSION: ${{ inputs.terraform_version }}
+          SERVICES: ${{ inputs.services }}
+          CLUSTER_NAME: ${{ inputs.cluster_name_staging }}
+          PRE_APPLIED_RESOURCES: ${{ inputs.pre_applied_resources }}
+
+  deploy-to-prod:
+    name: "🚀 Deploy to prod"
+    environment: prod
+    if: ${{ inputs.deploy_to_prod == true }}
+    needs:
+      - version-tag
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📁 Checkout
+        uses: actions/checkout@v4
+
+      - name: 🚀 Deploy to prod
+        uses: aproorg/github-workflows/.github/actions/deploy-ecs-service@kistill
+        with:
+          AWS_REGION: ${{inputs.aws_region}}
+          AWS_DEPLOYMENT_ROLE: ${{ inputs.github_ci_role_prod_arn }}
+          ENVIRONMENT: prod
+          IMAGE_TAG: ${{ github.event.release.tag_name }}
+          TERRAFORM_VERSION: ${{ inputs.terraform_version }}
+          SERVICES: ${{ inputs.services }}
+          CLUSTER_NAME: ${{ inputs.cluster_name_prod }}
+          PRE_APPLIED_RESOURCES: ${{ inputs.pre_applied_resources }}
