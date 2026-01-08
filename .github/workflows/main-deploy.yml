@@ -99,6 +99,7 @@ jobs:
         with:
           service_name: ${{ inputs.service_name }}
           services: ${{ inputs.services }}
+          force_new_deployment: ${{ inputs.force_new_deployment }}
 
   create-ecr-repo:
     name: "🚀 Apply shared"
@@ -165,7 +166,7 @@ jobs:
           ENVIRONMENT: dev
           AWS_DEPLOYMENT_ROLE: ${{ inputs.github_ci_role_arn }}
           IMAGE_TAG: ${{ inputs.use_latest_tag && 'latest' || format('sha-{0}', github.sha) }}
-          FORCE_NEW_DEPLOYMENT: ${{ inputs.force_new_deployment || matrix.force_new_deployment }}
+          FORCE_NEW_DEPLOYMENT: ${{ matrix.force_new_deployment }}
           SERVICE_NAME: ${{ matrix.name }}
           CLUSTER_NAME: ${{ inputs.cluster_name }}
           TERRAFORM_VERSION: ${{ inputs.terraform_version }}
