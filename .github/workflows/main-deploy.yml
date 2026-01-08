@@ -166,7 +166,7 @@ jobs:
           ENVIRONMENT: dev
           AWS_DEPLOYMENT_ROLE: ${{ inputs.github_ci_role_arn }}
           IMAGE_TAG: ${{ inputs.use_latest_tag && 'latest' || format('sha-{0}', github.sha) }}
-          FORCE_NEW_DEPLOYMENT: ${{ matrix.force_new_deployment }}
+          FORCE_NEW_DEPLOYMENT: ${{ matrix.force_new_deployment || true }}
           SERVICE_NAME: ${{ matrix.name }}
           CLUSTER_NAME: ${{ inputs.cluster_name }}
           TERRAFORM_VERSION: ${{ inputs.terraform_version }}
