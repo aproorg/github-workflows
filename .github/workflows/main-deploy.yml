@@ -95,7 +95,7 @@ jobs:
     steps:
       - name: 🤝 Unify service inputs
         id: unify-services
-        uses: aproorg/github-workflows/.github/actions/unify-services@main
+        uses: aproorg/github-workflows/.github/actions/unify-services@services-force-deployment-configuration
         with:
           service_name: ${{ inputs.service_name }}
           services: ${{ inputs.services }}
