@@ -45,6 +45,10 @@ on:
         description: 'Checkout with LFS'
         type: boolean
         default: false
+      build_checkout_fetch_tags:
+        description: 'Fetch git tags during checkout'
+        type: boolean
+        default: false
       use_latest_tag:
         description: 'Use latest tag'
         type: boolean
@@ -132,7 +136,7 @@ jobs:
       uses: actions/checkout@v4
       with:
         lfs: ${{ inputs.build_checkout_with_lfs }}
-        fetch-tags: true
+        fetch-tags: ${{ inputs.build_checkout_fetch_tags }}
 
     - name: '️️️🏗️ Build and push image all images'
       uses: aproorg/github-workflows/.github/actions/build-and-push-image@main
