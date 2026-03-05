@@ -41,7 +41,7 @@ jobs:
           path: ${{ steps.set-up-homebrew.outputs.gems-path }}
           key: rubygems-${{ steps.set-up-homebrew.outputs.gems-hash }}
           restore-keys: rubygems-
-      
+
       - uses: terraform-linters/setup-tflint@v4
         name: "🛠️ Setup TFLint"
         with:
@@ -54,7 +54,7 @@ jobs:
 
       - name: "⬇️ Install tools"
         run: brew install tfenv
-      
+
       - name: "🔍 Versions"
         run: |
           terraform --version
@@ -63,11 +63,10 @@ jobs:
 
       - name: "🔍 Lint Terraform"
         run: |
-          tflint --recursive 
+          tflint --recursive
 
       - name: "👀 Run trivy security checks"
-        uses: aquasecurity/trivy-action@0.30.0
+        uses: aquasecurity/trivy-action@0.34.2
         with:
-          scan-type: 'config'
-          exit-code: '1'
-          
+          scan-type: "config"
+          exit-code: "1"
