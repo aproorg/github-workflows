@@ -11,7 +11,7 @@ on:
 
 permissions:
   id-token: write # Required f. IAM Token
-  contents: write
+  contents: read
 
 jobs:
   terraform-quality:
