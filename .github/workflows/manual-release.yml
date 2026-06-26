@@ -13,7 +13,7 @@ jobs:
       new_release_published: ${{ steps.get-next-version.outputs.new_release_published }}
     steps:
       - name: 📁 Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
       - name: 🏷️ Get next version
         id: get-next-version
         uses: aproorg/github-workflows/.github/actions/get-next-version@main
@@ -28,7 +28,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: 📁 Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 0
 

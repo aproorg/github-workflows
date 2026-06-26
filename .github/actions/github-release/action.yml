@@ -22,7 +22,7 @@ runs:
   steps:
     - name: ⏯️ Release
       id: semantic
-      uses: cycjimmy/semantic-release-action@v4
+      uses: cycjimmy/semantic-release-action@v6
       env:
         GITHUB_TOKEN: ${{ inputs.github_token }}
       with:
