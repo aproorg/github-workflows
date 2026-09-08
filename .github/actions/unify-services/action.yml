@@ -9,6 +9,9 @@ inputs:
   services:
     description: Multiple services (JSON array of objects)
     required: false
+  force_new_deployment:
+    description: Whether to force a new deployment
+    required: false
 
 outputs:
   final_services:
@@ -22,13 +25,13 @@ runs:
       id: unify-services
       shell: bash
       run: |
-          if [ -n "${{ inputs.service_name }}" ] && [ -z "${{ inputs.services }}" ]; then
-            echo 'final_services=[{"directory":".","name":"${{ inputs.service_name }}"}]' >> $GITHUB_OUTPUT
-    
-          elif [ -z "${{ inputs.service_name }}" ] && [ -n "${{ inputs.services }}" ]; then
-            echo 'final_services=${{ inputs.services }}' >> $GITHUB_OUTPUT
-    
-          else
-            echo "ERROR: Exactly one of 'service_name' or 'services' must be set." >&2
-            exit 1
-          fi
+        if [ -n "${{ inputs.service_name }}" ] && [ -z "${{ inputs.services }}" ]; then
+          echo 'final_services=[{"directory":".","name":"${{ inputs.service_name }}","force_new_deployment":"${{ inputs.force_new_deployment }}"}]' >> $GITHUB_OUTPUT
+
+        elif [ -z "${{ inputs.service_name }}" ] && [ -n "${{ inputs.services }}" ]; then
+          echo 'final_services=${{ inputs.services }}' >> $GITHUB_OUTPUT
+
+        else
+          echo "ERROR: Exactly one of 'service_name' or 'services' must be set." >&2
+          exit 1
+        fi
