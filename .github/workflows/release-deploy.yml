@@ -61,7 +61,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: 📁 Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: 🔖 Version tag image
         uses: aproorg/github-workflows/.github/actions/retag-docker-image@main
@@ -99,7 +99,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: 📁 Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: 🚀 Deploy to staging
         uses: aproorg/github-workflows/.github/actions/deploy-ecs-service@main
@@ -127,7 +127,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: 📁 Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: 🚀 Deploy to prod
         uses: aproorg/github-workflows/.github/actions/deploy-ecs-service@main

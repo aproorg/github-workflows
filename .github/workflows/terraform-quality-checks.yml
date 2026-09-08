@@ -18,37 +18,37 @@ jobs:
     name: "✅ Terraform quality checks"
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         name: "📁 Checkout"
         with:
           ref: ${{ github.head_ref }}
           fetch-depth: 0
 
-      - uses: actions/cache@v4
+      - uses: actions/cache@v5
         name: "📥 Cache plugin dir"
         with:
           path: ~/.tflint.d/plugins
           key: tflint-${{ hashFiles('terraform/.tflint.hcl') }}
 
-      - uses: Homebrew/actions/setup-homebrew@master
+      - uses: Homebrew/actions/setup-homebrew@main
         name: "☕️ Set up Homebrew"
         id: set-up-homebrew
 
       - name: "📥 Cache Homebrew Bundler RubyGems"
         id: cache
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ${{ steps.set-up-homebrew.outputs.gems-path }}
           key: rubygems-${{ steps.set-up-homebrew.outputs.gems-hash }}
           restore-keys: rubygems-
 
-      - uses: terraform-linters/setup-tflint@v4
+      - uses: terraform-linters/setup-tflint@v6
         name: "🛠️ Setup TFLint"
         with:
           tflint_version: latest
 
       - name: "🛠️ Setup Terraform"
-        uses: hashicorp/setup-Terraform@v3
+        uses: hashicorp/setup-Terraform@v4
         with:
           terraform_version: ${{ inputs.terraform_version }}
 

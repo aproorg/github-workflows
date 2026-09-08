@@ -26,7 +26,7 @@ runs:
   using: "composite"
   steps:
   - name: 🔐 Configure AWS credentials
-    uses: aws-actions/configure-aws-credentials@v4
+    uses: aws-actions/configure-aws-credentials@v6
     with:
       role-to-assume: ${{ inputs.AWS_ROLE_ARN }}
       role-session-name: GitHub-Action-Role
@@ -65,7 +65,7 @@ runs:
       echo "EOF" >> $GITHUB_OUTPUT
 
   - name: 🐳 Docker Metadata
-    uses: docker/metadata-action@v5
+    uses: docker/metadata-action@v6
     id: meta
     with:
       images: "${{ steps.parse.outputs.images }}"
@@ -78,7 +78,7 @@ runs:
 
   - name: 🏗️ Build and push
     if: ${{ !inputs.CUSTOM_BUILD_SCRIPT }}
-    uses: docker/build-push-action@v5
+    uses: docker/build-push-action@v7
     with:
       push: true
       tags: ${{ steps.meta.outputs.tags }}

@@ -83,7 +83,7 @@ jobs:
       new_release_published: ${{ steps.get-next-version.outputs.new_release_published }}
     steps:
       - name: 📁 Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: 🏷️ Get next version
         id: get-next-version
@@ -133,7 +133,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: 📁 Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           lfs: ${{ inputs.build_checkout_with_lfs }}
           fetch-tags: ${{ inputs.build_checkout_fetch_tags }}
@@ -162,7 +162,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: 📁 Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: "🚀 Deploy to dev"
         uses: aproorg/github-workflows/.github/actions/deploy-ecs-service@main

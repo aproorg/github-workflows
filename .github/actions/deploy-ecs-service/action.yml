@@ -42,7 +42,7 @@ runs:
   using: 'composite'
   steps:
     - name: Setup Terraform
-      uses: hashicorp/setup-Terraform@v3
+      uses: hashicorp/setup-Terraform@v4
       with:
         terraform_version: ${{ inputs.TERRAFORM_VERSION }}
 
@@ -51,7 +51,7 @@ runs:
       run: terraform --version
 
     - name: 'Configure AWS Credentials'
-      uses: aws-actions/configure-aws-credentials@v4
+      uses: aws-actions/configure-aws-credentials@v6
       with:
         role-to-assume: ${{ inputs.AWS_DEPLOYMENT_ROLE }}
         aws-region: ${{ inputs.AWS_REGION }}
