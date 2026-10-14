@@ -28,7 +28,7 @@ jobs:
           ref: ${{ github.head_ref }}
           fetch-depth: 0
 
-      - uses: Homebrew/actions/setup-homebrew@master
+      - uses: Homebrew/actions/setup-homebrew@main
         name: "☕️ Set up Homebrew"
         id: set-up-homebrew
 
